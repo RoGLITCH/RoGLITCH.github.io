@@ -178,6 +178,16 @@
                     <main>
                         <h1 id="welcome-to-glitch-writeups-"><a class="header" href="#welcome-to-glitch-writeups-">Welcome to GLITCH Writeups !</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="active"><a class="header" href="#active">Active</a></h1>
+<blockquote>
+<p>Active is an easy windows machine, which features two very prevalent techniques to gain privileges within an Active Directory environment.</p>
+</blockquote>
+<hr />
+<h1 id="summary"><a class="header" href="#summary">Summary</a></h1>
+<p>We start enumeration from an unauthenticated standpoint, we find that null authentication is enabled and that we have the permissions to read a share called <code>Replication</code>.</p>
+<p>Inside that share, we find a very interesting file called <code>Groups.xml</code> which is known to be used when <strong>Group Policy Preferences (GPP)</strong> is configured.</p>
+<p>The file contains an encrypted <code>cpassword</code> attribute for user <code>svc_tgs</code>, which can be decrypted using <code>gpp-decrypt</code>.</p>
+<p>After we gain access in Active Directory through <code>svc_tgs</code> user, some bloodhound enumeration shows that <code>Administrator</code> is kerberoastable, after requesting the <code>TGS</code> for administrator we crack the password using <code>hashcat</code> and get <code>NT AUTHORITY/SYSTEM</code> access on the Domain Controller using <code>psexec</code> to retrieve the flags.</p>
+<hr />
 <h1 id="initial-foothold"><a class="header" href="#initial-foothold">Initial Foothold</a></h1>
 <h2 id="enumerating-shares"><a class="header" href="#enumerating-shares">Enumerating Shares</a></h2>
 <p>SMB Null Auth was enabled on the machine, so we will start with enumerating the available shares and see what shares can we read</p>
@@ -262,7 +272,7 @@ name="active.htb\SVC_TGS" i
 cpassword="ed&lt;REDACTED&gt;mQ"
 &lt;SNIP&gt;
 </code></pre>
-<p>Decrypting the password using <code>gpp-decrypt</code>, now we have a set of credentials <code>svc_tgs:GP&lt;REDACTED&gt;18</code>.</p>
+<p>Decrypting the password using <code>gpp-decrypt</code>, not we have a set of credentials <code>svc_tgs:GP&lt;REDACTED&gt;18</code>.</p>
 <pre><code class="language-bash">└─$ gpp-decrypt ed&lt;REDACTED&gt;mQ
 GP&lt;REDACTED&gt;18
 </code></pre>
